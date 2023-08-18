@@ -56,15 +56,9 @@
                     </el-table-column>
                     <el-table-column :label="$t('commons.table.status')" min-width="80" prop="status">
                         <template #default="{ row }">
-                            <el-tag v-if="row.status === 'Success'" type="success">
-                                {{ $t('commons.table.statusSuccess') }}
-                            </el-tag>
-                            <el-tag v-if="row.status === 'Waiting'" type="info">
+                            <el-button v-if="row.status === 'Waiting'" type="primary" @click="onLoadStatus(row)" link>
                                 {{ $t('commons.table.statusWaiting') }}
-                            </el-tag>
-                            <el-tag v-if="row.status === 'Uploading'" type="info">
-                                {{ $t('commons.status.uploading') }}...
-                            </el-tag>
+                            </el-button>
                             <el-tooltip v-if="row.status === 'Failed'" effect="dark" placement="top">
                                 <template #content>
                                     <div style="width: 300px; word-break: break-all">{{ row.message }}</div>
@@ -142,6 +136,7 @@
                 </span>
             </template>
         </el-drawer>
+        <SnapStatus ref="snapStatusRef" @search="search" />
     </div>
 </template>
 
@@ -156,6 +151,7 @@ import { ElForm } from 'element-plus';
 import { Rules } from '@/global/form-rules';
 import i18n from '@/lang';
 import { Setting } from '@/api/interface/setting';
+import SnapStatus from '@/views/setting/snapshot/snap_status/index.vue';
 import RecoverStatus from '@/views/setting/snapshot/status/index.vue';
 import SnapshotImport from '@/views/setting/snapshot/import/index.vue';
 import { getBackupList } from '@/api/modules/setting';
@@ -171,6 +167,7 @@ const paginationConfig = reactive({
 });
 const searchName = ref();
 
+const snapStatusRef = ref();
 const recoverStatusRef = ref();
 const importRef = ref();
 const isRecordShow = ref();
@@ -224,6 +221,10 @@ const submitAddSnapshot = (formEl: FormInstance | undefined) => {
                 loading.value = false;
             });
     });
+};
+
+const onLoadStatus = (row: Setting.SnapshotInfo) => {
+    snapStatusRef.value.acceptParams({ id: row.id });
 };
 
 const loadBackups = async () => {

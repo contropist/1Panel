@@ -106,6 +106,18 @@ export namespace Setting {
         rollbackMessage: string;
         lastRollbackedAt: string;
     }
+    export interface SnapshotStatus {
+        panel: string;
+        panelCtl: string;
+        panelService: string;
+        daemonJson: string;
+        appData: string;
+        panelData: string;
+        backupData: string;
+
+        compress: string;
+        upload: string;
+    }
     export interface UpgradeInfo {
         newVersion: string;
         latestVersion: string;

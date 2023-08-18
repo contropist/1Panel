@@ -75,6 +75,19 @@ type PortUpdate struct {
 	ServerPort uint `json:"serverPort" validate:"required,number,max=65535,min=1"`
 }
 
+type SnapshotStatus struct {
+	Panel        string `json:"panel"`
+	PanelCtl     string `json:"panelCtl"`
+	PanelService string `json:"panelService"`
+	DaemonJson   string `json:"daemonJson"`
+	AppData      string `json:"appData"`
+	PanelData    string `json:"panelData"`
+	BackupData   string `json:"backupData"`
+
+	Compress string `json:"compress"`
+	Upload   string `json:"upload"`
+}
+
 type SnapshotCreate struct {
 	From        string `json:"from" validate:"required,oneof=OSS S3 SFTP MINIO COS KODO OneDrive"`
 	Description string `json:"description" validate:"max=256"`
