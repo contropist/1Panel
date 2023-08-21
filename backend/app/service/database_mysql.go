@@ -152,11 +152,11 @@ func (u *MysqlService) LoadFromRemote(from string) error {
 		mysqlName = app.Name
 	}
 
-	databases, err := mysqlRepo.List(remoteDBRepo.WithByFrom(from))
+	datas, err := client.SyncDB(version)
 	if err != nil {
 		return err
 	}
-	datas, err := client.SyncDB(version)
+	databases, err := mysqlRepo.List(remoteDBRepo.WithByFrom(from))
 	if err != nil {
 		return err
 	}
