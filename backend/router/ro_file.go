@@ -9,7 +9,7 @@ import (
 type FileRouter struct {
 }
 
-func (f *FileRouter) InitFileRouter(Router *gin.RouterGroup) {
+func (f *FileRouter) InitRouter(Router *gin.RouterGroup) {
 	fileRouter := Router.Group("files")
 	fileRouter.Use(middleware.JwtAuth()).Use(middleware.SessionAuth()).Use(middleware.PasswordExpired())
 	baseApi := v1.ApiGroupApp.BaseApi
@@ -37,5 +37,17 @@ func (f *FileRouter) InitFileRouter(Router *gin.RouterGroup) {
 		fileRouter.POST("/size", baseApi.Size)
 		fileRouter.GET("/ws", baseApi.Ws)
 		fileRouter.GET("/keys", baseApi.Keys)
+		fileRouter.POST("/read", baseApi.ReadFileByLine)
+		fileRouter.POST("/batch/role", baseApi.BatchChangeModeAndOwner)
+
+		fileRouter.POST("/recycle/search", baseApi.SearchRecycleBinFile)
+		fileRouter.POST("/recycle/reduce", baseApi.ReduceRecycleBinFile)
+		fileRouter.POST("/recycle/clear", baseApi.ClearRecycleBinFile)
+		fileRouter.GET("/recycle/status", baseApi.GetRecycleStatus)
+
+		fileRouter.POST("/favorite/search", baseApi.SearchFavorite)
+		fileRouter.POST("/favorite", baseApi.CreateFavorite)
+		fileRouter.POST("/favorite/del", baseApi.DeleteFavorite)
+
 	}
 }

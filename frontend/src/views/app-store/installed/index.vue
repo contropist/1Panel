@@ -13,7 +13,7 @@
                         >
                             {{ $t('app.all') }}
                         </el-button>
-                        <div v-for="item in tags.slice(0, 6)" :key="item.key" class="inline">
+                        <div v-for="item in tags.slice(0, 7)" :key="item.key" class="inline">
                             <el-button
                                 class="tag-button"
                                 :class="activeTag === item.key ? '' : 'no-active'"
@@ -21,7 +21,7 @@
                                 :type="activeTag === item.key ? 'primary' : ''"
                                 :plain="activeTag !== item.key"
                             >
-                                {{ language == 'zh' || language == 'tw' ? item.name : item.key }}
+                                {{ item.name }}
                             </el-button>
                         </div>
                         <div class="inline">
@@ -39,7 +39,7 @@
                                 <template #dropdown>
                                     <el-dropdown-menu>
                                         <el-dropdown-item
-                                            v-for="item in tags.slice(6)"
+                                            v-for="item in tags.slice(7)"
                                             @click="changeTag(item.key)"
                                             :key="item.key"
                                         >
@@ -53,38 +53,28 @@
                 </el-col>
 
                 <el-col :xs="24" :sm="4" :md="4" :lg="4" :xl="4">
-                    <div class="search-button">
-                        <el-input
-                            class="table-button"
-                            v-model="searchReq.name"
-                            clearable
-                            @clear="search()"
-                            suffix-icon="Search"
-                            @keyup.enter="search()"
-                            @change="search()"
-                            :placeholder="$t('commons.button.search')"
-                        ></el-input>
-                    </div>
+                    <TableSearch @search="search()" v-model:searchName="searchReq.name" />
                 </el-col>
             </el-row>
         </template>
         <template #rightButton>
-            <el-button @click="sync" type="primary" link v-if="mode === 'installed' && data != null">
+            <el-button @click="sync" type="primary" plain v-if="mode === 'installed' && data != null">
                 {{ $t('app.sync') }}
             </el-button>
-            <el-button @click="openIngore" type="primary" link v-if="mode === 'upgrade'">
+            <el-button @click="openIgnore" type="primary" plain v-if="mode === 'upgrade'">
                 {{ $t('app.showIgnore') }}
             </el-button>
         </template>
 
         <template #main>
             <el-alert type="info" :closable="false" v-if="mode === 'installed'">
-                <template #default>
-                    <span>
-                        <span>{{ $t('app.installHelper') }}</span>
-                        <el-link class="text-xs scroll-ml-1" icon="Position" @click="quickJump()" type="primary">
+                <template #title>
+                    <span class="flx-align-center">
+                        {{ $t('app.installHelper') }}
+                        <el-link class="ml-5" icon="Position" @click="quickJump()" type="primary">
                             {{ $t('firewall.quickJump') }}
                         </el-link>
+                        　
                     </span>
                 </template>
             </el-alert>
@@ -104,17 +94,17 @@
                     :md="24"
                     :lg="12"
                     :xl="12"
-                    class="install-card-col-12"
+                    :class="mode === 'upgrade' ? 'upgrade-card-col-12' : 'install-card-col-12'"
                 >
                     <div class="install-card">
                         <el-card class="e-card">
-                            <el-row :gutter="20">
+                            <el-row :gutter="10">
                                 <el-col :xs="3" :sm="3" :md="3" :lg="4" :xl="4">
-                                    <div class="icon">
+                                    <div class="icon" @click.stop="openDetail(installed.appKey)">
                                         <el-avatar
                                             shape="square"
                                             :size="66"
-                                            :src="'data:image/png;base64,' + installed.app.icon"
+                                            :src="'data:image/png;base64,' + installed.icon"
                                         />
                                     </div>
                                 </el-col>
@@ -122,9 +112,10 @@
                                     <div class="a-detail">
                                         <div class="d-name">
                                             <el-button link type="info">
-                                                <span class="name">{{ installed.name }}</span>
+                                                <el-tooltip effect="dark" :content="installed.name" placement="top">
+                                                    <span class="name">{{ installed.name }}</span>
+                                                </el-tooltip>
                                             </el-button>
-
                                             <span class="status">
                                                 <Status :key="installed.status" :status="installed.status"></Status>
                                             </span>
@@ -135,12 +126,16 @@
                                                     :width="400"
                                                     trigger="hover"
                                                     :content="installed.message"
+                                                    :popper-options="options"
                                                 >
                                                     <template #reference>
                                                         <el-button link type="danger">
                                                             <el-icon><Warning /></el-icon>
                                                         </el-button>
                                                     </template>
+                                                    <div class="app-error">
+                                                        {{ installed.message }}
+                                                    </div>
                                                 </el-popover>
                                             </span>
                                             <span class="ml-1">
@@ -159,8 +154,8 @@
                                                     placement="top"
                                                 >
                                                     <el-button
-                                                        link
                                                         type="primary"
+                                                        link
                                                         @click="openLog(installed)"
                                                         :disabled="installed.status === 'DownloadErr'"
                                                     >
@@ -171,40 +166,30 @@
 
                                             <el-button
                                                 class="h-button"
-                                                type="primary"
                                                 plain
                                                 round
                                                 size="small"
-                                                :disabled="
-                                                    installed.status !== 'Running' ||
-                                                    installed.app.status === 'TakeDown'
-                                                "
-                                                @click="openUploads(installed.app.key, installed.name)"
+                                                @click="openUploads(installed.appKey, installed.name)"
                                                 v-if="mode === 'installed'"
                                             >
                                                 {{ $t('database.loadBackup') }}
                                             </el-button>
                                             <el-button
                                                 class="h-button"
-                                                type="primary"
                                                 plain
                                                 round
                                                 size="small"
-                                                :disabled="
-                                                    installed.status !== 'Running' ||
-                                                    installed.app.status === 'TakeDown'
-                                                "
-                                                @click="openBackups(installed.app.key, installed.name)"
+                                                @click="openBackups(installed.appKey, installed.name, installed.status)"
                                                 v-if="mode === 'installed'"
                                             >
                                                 {{ $t('commons.button.backup') }}
                                             </el-button>
                                             <el-button
                                                 class="h-button"
-                                                type="primary"
                                                 plain
                                                 round
                                                 size="small"
+                                                :disabled="installed.status === 'Upgrading'"
                                                 @click="openOperate(installed, 'ignore')"
                                                 v-if="mode === 'upgrade'"
                                             >
@@ -212,14 +197,13 @@
                                             </el-button>
                                             <el-button
                                                 class="h-button"
-                                                type="primary"
                                                 plain
                                                 round
                                                 size="small"
                                                 :disabled="
                                                     (installed.status !== 'Running' &&
                                                         installed.status !== 'UpgradeErr') ||
-                                                    installed.app.status === 'TakeDown'
+                                                    installed.appStatus === 'TakeDown'
                                                 "
                                                 @click="openOperate(installed, 'upgrade')"
                                                 v-if="mode === 'upgrade'"
@@ -227,43 +211,50 @@
                                                 {{ $t('commons.button.upgrade') }}
                                             </el-button>
                                         </div>
-                                        <div class="d-description">
-                                            <el-tag class="middle-center">
-                                                {{ $t('app.version') }}：{{ installed.version }}
-                                            </el-tag>
-                                            <el-tag
-                                                class="middle-center"
+                                        <div class="d-description flex flex-wrap items-center justify-start gap-1.5">
+                                            <el-button class="tagMargin" plain size="small">
+                                                {{ $t('app.version') }}{{ $t('commons.colon') }}{{ installed.version }}
+                                            </el-button>
+
+                                            <el-button
                                                 v-if="installed.httpPort > 0"
                                                 @click="goDashboard(installed.httpPort, 'http')"
+                                                class="tagMargin"
+                                                icon="Position"
+                                                plain
+                                                size="small"
                                             >
-                                                <el-icon class="middle-center"><Position /></el-icon>
-                                                {{ $t('app.busPort') }}：{{ installed.httpPort }}
-                                            </el-tag>
-                                            <el-tag
-                                                class="middle-center"
+                                                {{ $t('app.busPort') }}{{ $t('commons.colon') }}{{ installed.httpPort }}
+                                            </el-button>
+
+                                            <el-button
                                                 v-if="installed.httpsPort > 0"
                                                 @click="goDashboard(installed.httpsPort, 'https')"
+                                                class="tagMargin"
+                                                icon="Position"
+                                                plain
+                                                size="small"
                                             >
-                                                <el-icon class="middle-center"><Position /></el-icon>
-                                                {{ $t('app.busPort') }}：{{ installed.httpsPort }}
-                                            </el-tag>
-                                            <div class="description">
-                                                <span>
-                                                    {{ $t('app.alreadyRun') }}： {{ getAge(installed.createdAt) }}
-                                                </span>
-                                            </div>
+                                                {{ $t('app.busPort') }}{{ $t('commons.colon')
+                                                }}{{ installed.httpsPort }}
+                                            </el-button>
                                         </div>
-                                        <div class="app-divider" />
+                                        <div class="description">
+                                            <span>
+                                                {{ $t('app.alreadyRun') }}{{ $t('commons.colon') }}
+                                                {{ getAge(installed.createdAt) }}
+                                            </span>
+                                        </div>
+                                        <div class="app-divider" v-if="mode === 'installed'" />
                                         <div
-                                            class="d-button"
+                                            class="d-button flex flex-wrap items-center justify-start gap-1.5"
                                             v-if="mode === 'installed' && installed.status != 'Installing'"
                                         >
                                             <el-button
+                                                class="app-button"
                                                 v-for="(button, key) in buttons"
                                                 :key="key"
-                                                :type="
-                                                    button.disabled && button.disabled(installed) ? 'info' : 'primary'
-                                                "
+                                                :type="button.disabled && button.disabled(installed) ? 'info' : ''"
                                                 plain
                                                 round
                                                 size="small"
@@ -300,6 +291,7 @@
     <PortJumpDialog ref="dialogPortJumpRef" />
     <AppIgnore ref="ignoreRef" @close="search" />
     <ComposeLogs ref="composeLogRef" />
+    <AppDetail ref="appDetail" />
 </template>
 
 <script lang="ts" setup>
@@ -321,14 +313,14 @@ import AppDelete from './delete/index.vue';
 import AppParams from './detail/index.vue';
 import AppUpgrade from './upgrade/index.vue';
 import AppIgnore from './ignore/index.vue';
+import AppDetail from '../detail/index.vue';
 import ComposeLogs from '@/components/compose-log/index.vue';
 import { App } from '@/api/interface/app';
 import Status from '@/components/status/index.vue';
-import { getAge } from '@/utils/util';
+import { getAge, getLanguage } from '@/utils/util';
 import { useRouter } from 'vue-router';
 import { MsgSuccess } from '@/utils/message';
 import { toFolder } from '@/global/business';
-import { useI18n } from 'vue-i18n';
 
 const data = ref<any>();
 const loading = ref(false);
@@ -337,7 +329,7 @@ let timer: NodeJS.Timer | null = null;
 const paginationConfig = reactive({
     cacheSizeKey: 'app-installed-page-size',
     currentPage: 1,
-    pageSize: 20,
+    pageSize: Number(localStorage.getItem('app-installed-page-size')) || 20,
     total: 0,
 });
 const open = ref(false);
@@ -363,12 +355,25 @@ const searchReq = reactive({
     name: '',
     tags: [],
     update: false,
+    sync: false,
 });
 const router = useRouter();
 const activeName = ref(i18n.global.t('app.installed'));
 const mode = ref('installed');
 const moreTag = ref('');
-const language = useI18n().locale.value;
+const language = getLanguage();
+const appDetail = ref();
+const options = {
+    modifiers: [
+        {
+            name: 'flip',
+            options: {
+                padding: 5,
+                fallbackPlacements: ['bottom-start', 'top-start', 'right', 'left'],
+            },
+        },
+    ],
+};
 
 const sync = () => {
     ElMessageBox.confirm(i18n.global.t('app.syncAllAppHelper'), i18n.global.t('app.sync'), {
@@ -381,7 +386,7 @@ const sync = () => {
             try {
                 await SyncInstalledApp();
                 MsgSuccess(i18n.global.t('app.syncSuccess'));
-                search();
+                await search();
             } finally {
                 syncLoading.value = false;
             }
@@ -396,7 +401,7 @@ const changeTag = (key: string) => {
         searchReq.tags = [key];
     }
     const index = tags.value.findIndex((tag) => tag.key === key);
-    if (index > 5) {
+    if (index > 6) {
         moreTag.value = key;
     } else {
         moreTag.value = '';
@@ -411,18 +416,12 @@ const getTagValue = (key: string) => {
     }
 };
 
-const search = () => {
-    loading.value = true;
+const search = async () => {
     searchReq.page = paginationConfig.currentPage;
     searchReq.pageSize = paginationConfig.pageSize;
-    SearchAppInstalled(searchReq)
-        .then((res) => {
-            data.value = res.data.items;
-            paginationConfig.total = res.data.total;
-        })
-        .finally(() => {
-            loading.value = false;
-        });
+    const res = await SearchAppInstalled(searchReq);
+    data.value = res.data.items;
+    paginationConfig.total = res.data.total;
     GetAppTags().then((res) => {
         tags.value = res.data;
     });
@@ -432,16 +431,20 @@ const goDashboard = async (port: any, protocol: string) => {
     dialogPortJumpRef.value.acceptParams({ port: port, protocol: protocol });
 };
 
+const openDetail = (appKey: string) => {
+    appDetail.value.acceptParams(appKey, 'detail');
+};
+
 const openOperate = (row: any, op: string) => {
     operateReq.installId = row.id;
     operateReq.operate = op;
     if (op == 'upgrade' || op == 'ignore') {
-        upgradeRef.value.acceptParams(row.id, row.name, op);
+        upgradeRef.value.acceptParams(row.id, row.name, row.dockerCompose, op, row.app);
     } else if (op == 'delete') {
         AppInstalledDeleteCheck(row.id).then(async (res) => {
             const items = res.data;
             if (res.data && res.data.length > 0) {
-                checkRef.value.acceptParams({ items: items, key: row.app.key, installID: row.id });
+                checkRef.value.acceptParams({ items: items, key: row.appKey, installID: row.id });
             } else {
                 deleteRef.value.acceptParams(row);
             }
@@ -451,7 +454,7 @@ const openOperate = (row: any, op: string) => {
     }
 };
 
-const openIngore = () => {
+const openIgnore = () => {
     ignoreRef.value.acceptParams();
 };
 
@@ -461,7 +464,14 @@ const operate = async () => {
     await InstalledOp(operateReq)
         .then(() => {
             MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
+            searchReq.sync = true;
             search();
+            setTimeout(() => {
+                search();
+            }, 3000);
+            setTimeout(() => {
+                search();
+            }, 15000);
         })
         .catch(() => {
             search();
@@ -559,11 +569,12 @@ const buttons = [
     },
 ];
 
-const openBackups = (key: string, name: string) => {
+const openBackups = (key: string, name: string, status: string) => {
     let params = {
         type: 'app',
         name: key,
         detailName: name,
+        status: status,
     };
     backupRef.value.acceptParams(params);
 };
@@ -578,7 +589,7 @@ const openUploads = (key: string, name: string) => {
 };
 
 const openParam = (row: any) => {
-    appParamRef.value.acceptParams({ app: row.app, id: row.id });
+    appParamRef.value.acceptParams({ id: row.id });
 };
 
 const isAppErr = (row: any) => {
@@ -600,10 +611,16 @@ onMounted(() => {
         mode.value = 'upgrade';
         searchReq.update = true;
     }
+    loading.value = true;
     search();
+    loading.value = false;
+    setTimeout(() => {
+        searchReq.sync = true;
+        search();
+    }, 1000);
     timer = setInterval(() => {
         search();
-    }, 10000 * 6);
+    }, 1000 * 30);
 });
 
 onUnmounted(() => {
@@ -613,11 +630,47 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-@import '../index.scss';
-@media only screen and (max-width: 1300px) {
+@use '../index';
+@media only screen and (max-width: 1400px) {
     .install-card-col-12 {
         max-width: 100%;
         flex: 0 0 100%;
+        .a-detail {
+            .d-name {
+                .name {
+                    max-width: 300px;
+                }
+            }
+        }
+    }
+}
+
+@media only screen and (max-width: 1499px) {
+    .upgrade-card-col-12 {
+        max-width: 100%;
+        flex: 0 0 100%;
+        .a-detail {
+            .d-name {
+                .name {
+                    max-width: 300px;
+                }
+            }
+        }
+    }
+}
+
+.app-error {
+    max-height: 500px;
+    overflow-y: auto;
+}
+.d-button {
+    .el-button + .el-button {
+        margin-left: 0;
+    }
+}
+.d-description {
+    .el-button + .el-button {
+        margin-left: 0;
     }
 }
 </style>
